@@ -60,19 +60,22 @@ try:
 except Exception, e:
     p.error("Could not load config file '%s': %s" % (options.config, str(e)))
 
+scheme, rest = url.split(':', 1)
+host, path = urllib.splithost(rest)
+
 # get cracking
 urllib.getproxies = lambda: {} # fuck, how can disabling proxies be this difficult
 br = mechanize.Browser()
 
 print "Reading RecentChanges..."
-r = br.open("%s/RecentChanges" % url)
+r = br.open("%s/RecentChanges?max_days=30" % url)
 assert br.viewing_html()
 
 pages = []
 seen_pages = {}
 last_page = None
 for link in br.links():
-    m = re.match(r'^/(.*)\?action=info$', link.url)
+    m = re.match(r'^%s/(.*)\?action=info$' % path, link.url)
     if m:
         page = m.group(1).strip()
         if page == 'RecentChanges':
@@ -139,7 +142,7 @@ else:
 print "Logging in as %s..." % user
 r = br.open("%s/?action=login" % url)
 assert br.viewing_html()
-br.select_form(nr=2)
+br.select_form(nr=1)
 br["name"] = user
 br["password"] = password
 r = br.submit()
@@ -176,7 +179,7 @@ for page in selected_pages:
 
     if not skip:
         print "    Deleting %s" % page
-        br.select_form(nr=1)
+        br.select_form(nr=0)
         br["savetext"] = "#acl All:\nspam"
         try:
             r = br.submit()
